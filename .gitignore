@@ -2,3 +2,5 @@
 
 # Added by git-get
 rmcp-example
+
+*.env
