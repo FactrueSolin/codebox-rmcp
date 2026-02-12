@@ -1,11 +1,17 @@
-FROM rust:1.85-bookworm AS builder
+# syntax=docker/dockerfile:1
+
+FROM rust:1.88-bookworm AS builder
 
 WORKDIR /app
 
 # Build release binary
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-RUN cargo build --release --locked
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release --locked && \
+    cp target/release/codebox-rmcp /app/codebox-rmcp
 
 
 FROM debian:bookworm-slim AS runtime
@@ -29,7 +35,7 @@ ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=8080
 
 # Copy compiled binary
-COPY --from=builder /app/target/release/codebox-rmcp /usr/local/bin/codebox-rmcp
+COPY --from=builder /app/codebox-rmcp /usr/local/bin/codebox-rmcp
 
 EXPOSE 8080
 

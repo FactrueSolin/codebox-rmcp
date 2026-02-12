@@ -1,7 +1,8 @@
 use rmcp::{
     ErrorData as McpError, ServerHandler,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
-    model::*, schemars, tool, tool_handler, tool_router,
+    model::*,
+    schemars, tool, tool_handler, tool_router,
 };
 
 use crate::executor::execute_python;
@@ -28,20 +29,25 @@ impl PythonRunner {
     }
 
     #[tool(description = r#"执行python代码并返回结果
-# 示例代码
+示例代码<examples>
 # /// script
 # dependencies = [
 #   "requests<3",
 #   "rich",
 # ]
 # ///
-
 import requests
 from rich.pretty import pprint
 
 resp = requests.get("https://peps.python.org/api/peps.json")
 data = resp.json()
-pprint([(k, v["title"]) for k, v in data.items()][:10])"#)]
+pprint([(k, v["title"]) for k, v in data.items()][:10])
+</examples>
+<extra_info>
+1. 必须显式打印才会输出结果
+2. 可以在代码顶部通过depends安装所需库
+</extra_info>
+"#)]
     async fn run_python(
         &self,
         Parameters(RunPythonArgs { code }): Parameters<RunPythonArgs>,

@@ -302,3 +302,64 @@ EXECUTION_TIMEOUT=60
 
 仓库提示中提到 `rmcp-example` 可作为参考（实现阶段可再引入对照）。
 
+---
+
+## Docker 部署
+
+本节说明如何通过 Docker / Docker Compose 部署与运行 `codebox-rmcp`。相关文件可参考：[`Dockerfile`](../Dockerfile:1)、[`docker-compose.yml`](../docker-compose.yml:1)。
+
+### 1. 前提条件
+
+- 安装 Docker
+- 安装 Docker Compose（建议使用 `docker compose` 插件形式）
+
+### 2. 快速启动
+
+```bash
+# 配置环境变量
+cp .env.example .env  # 或直接编辑 .env
+
+# 使用 Docker Compose 构建并启动
+docker compose up -d --build
+
+# 查看日志
+docker compose logs -f
+```
+
+### 3. 单独使用 Docker 构建
+
+```bash
+# 构建镜像
+docker build -t codebox-rmcp .
+
+# 运行容器
+docker run -d \
+  --name codebox-rmcp \
+  --env-file .env \
+  -p 18081:18081 \
+  --restart unless-stopped \
+  codebox-rmcp
+```
+
+### 4. 环境变量说明
+
+环境变量通常通过 [`.env`](../.env:1) 提供，关键项如下（括号内为默认值/示例说明）：
+
+- `SERVER_HOST`：监听地址（默认 `0.0.0.0`）
+- `SERVER_PORT`：监听端口（默认 `8080`；本仓库的 `.env` 示例中配置为 `18081`）
+- `EXECUTION_TIMEOUT`：代码执行超时时间（默认 `60` 秒）
+- `AUTH_TOKENS`：鉴权 token 列表（用于保护 `/mcp` 端点；建议生产环境必填）
+
+### 5. 健康检查
+
+服务启动后，可通过以下方式检查健康状态：
+
+```bash
+curl http://localhost:18081/health
+```
+
+### 6. 停止与清理
+
+```bash
+docker compose down
+```
