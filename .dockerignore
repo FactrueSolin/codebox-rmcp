@@ -1,0 +1,19 @@
+# Build artifacts
+target/
+
+# VCS
+.git/
+
+# Local environment files
+.env
+
+# Non-essential project directories
+docs/
+prompt/
+rmcp-example/
+
+# Editor/system noise
+.DS_Store
+.vscode/
+.idea/
+

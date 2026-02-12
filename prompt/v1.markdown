@@ -1,0 +1,20 @@
+<target>
+开发一个运行python代码的mcp工具
+</target>
+<info>
+1. 使用rmcp开发，rmcp最新版本是0.14.0
+2. rmcp的参考代码在/rmcp-example目录下
+</info>
+<info>
+项目全流程说明
+1. rust服务端接受python代码
+2. 然后在本地创建一个临时的命令行环境
+3. 使用uv run命令运行python代码
+4. 服务端获取代码运行结果并且返回
+</info>
+<extra_info>
+1. uv run运行脚本的参考文档https://docs.astral.sh/uv/guides/scripts/#running-a-script-without-dependencies
+2. 利用本地环境中已有的uv
+3. mcp server的实现参考 @rmcp-example/src/simple_auth_streamhttp.rs 使用tokens验证的方式进行身份验证，tokens在本地.env文件中进行存储
+4. mcp tool接受的参数就是，以字符串结构传递的python代码
+</extra_info>
