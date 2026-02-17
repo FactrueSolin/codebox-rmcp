@@ -14,6 +14,7 @@ use tower_http::cors::{Any, CorsLayer};
 use crate::{
     auth::{TokenStore, auth_middleware},
     tools::PythonRunner,
+    worker_client::WorkerClient,
 };
 
 async fn health() -> &'static str {
@@ -26,16 +27,13 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error + Send + Sync>
         .ok()
         .and_then(|value| value.parse::<u16>().ok())
         .unwrap_or(8080);
-    let timeout_secs = std::env::var("EXECUTION_TIMEOUT")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(60);
 
     let token_store = Arc::new(TokenStore::from_env());
+    let worker_client = WorkerClient::from_env();
 
     let mcp_service: StreamableHttpService<PythonRunner, LocalSessionManager> =
         StreamableHttpService::new(
-            move || Ok(PythonRunner::new(timeout_secs)),
+            move || Ok(PythonRunner::new(worker_client.clone())),
             LocalSessionManager::default().into(),
             StreamableHttpServerConfig::default(),
         );
@@ -64,4 +62,3 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error + Send + Sync>
     axum::serve(listener, app).await?;
     Ok(())
 }
-

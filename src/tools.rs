@@ -5,11 +5,11 @@ use rmcp::{
     schemars, tool, tool_handler, tool_router,
 };
 
-use crate::executor::execute_python;
+use crate::worker_client::WorkerClient;
 
 #[derive(Debug, Clone)]
 pub struct PythonRunner {
-    pub timeout_secs: u64,
+    worker_client: WorkerClient,
     tool_router: ToolRouter<Self>,
 }
 
@@ -21,9 +21,9 @@ pub struct RunPythonArgs {
 
 #[tool_router]
 impl PythonRunner {
-    pub fn new(timeout_secs: u64) -> Self {
+    pub fn new(worker_client: WorkerClient) -> Self {
         Self {
-            timeout_secs,
+            worker_client,
             tool_router: Self::tool_router(),
         }
     }
@@ -52,7 +52,7 @@ pprint([(k, v["title"]) for k, v in data.items()][:10])
         &self,
         Parameters(RunPythonArgs { code }): Parameters<RunPythonArgs>,
     ) -> Result<CallToolResult, McpError> {
-        match execute_python(&code, self.timeout_secs).await {
+        match self.worker_client.execute(&code, None).await {
             Ok(result) => {
                 let payload = serde_json::json!({
                     "stdout": result.stdout,

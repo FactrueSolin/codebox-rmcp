@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+
+FROM rust:1.88-bookworm AS builder
+
+WORKDIR /app
+
+# Build worker release binary
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release --locked && \
+    cp target/release/codebox-worker /app/codebox-worker
+
+
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies required by worker execution path
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv and place binary in a global executable path
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && chmod 0755 /usr/local/bin/uv
+
+# Create non-root runtime user
+RUN groupadd -g 10001 worker && \
+    useradd -u 10001 -g worker -m -d /home/worker -s /bin/sh worker
+
+WORKDIR /home/worker
+
+ENV WORKER_HOST=0.0.0.0
+ENV WORKER_PORT=9000
+ENV EXECUTION_TIMEOUT=60
+
+COPY --from=builder /app/codebox-worker /usr/local/bin/codebox-worker
+
+USER 10001:10001
+
+EXPOSE 9000
+
+CMD ["codebox-worker"]

@@ -4,7 +4,7 @@ FROM rust:1.88-bookworm AS builder
 
 WORKDIR /app
 
-# Build release binary
+# Build release binaries (codebox-rmcp + codebox-worker)
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
@@ -18,21 +18,17 @@ FROM debian:bookworm-slim AS runtime
 
 WORKDIR /app
 
-# Install runtime dependencies: Python + curl/CA for uv installer
+# Install runtime dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
-        python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv and ensure it's in PATH
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}"
-
-# Default network settings (can be overridden by env_file/runtime env)
+# Default service settings (can be overridden by env_file/runtime env)
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=8080
+ENV WORKER_URL=http://python-worker:9000
 
 # Copy compiled binary
 COPY --from=builder /app/codebox-rmcp /usr/local/bin/codebox-rmcp

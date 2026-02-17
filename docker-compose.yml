@@ -1,13 +1,16 @@
 services:
-  codebox-rmcp:
+  mcp-server:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: codebox-rmcp
+    container_name: codebox-mcp
     ports:
-      - "18081:18081"
-    env_file:
-      - .env
+      - "${SERVER_PORT:-18081}:${SERVER_PORT:-18081}"
+    env_file: .env
+    environment:
+      - WORKER_URL=http://codebox-worker:9000
+    networks:
+      - sandbox
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:${SERVER_PORT:-18081}/health"]
@@ -15,4 +18,49 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    depends_on:
+      python-worker:
+        condition: service_healthy
 
+  python-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: codebox-worker
+    expose:
+      - "9000"
+    environment:
+      - WORKER_HOST=0.0.0.0
+      - WORKER_PORT=9000
+      - EXECUTION_TIMEOUT=${EXECUTION_TIMEOUT:-60}
+    networks:
+      - sandbox
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512M,mode=1777
+      - /home/worker/.cache:size=1G,mode=0755,uid=10001,gid=10001
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+          pids: 256
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  sandbox:
+    driver: bridge
