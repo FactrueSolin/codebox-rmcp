@@ -4,3 +4,5 @@
 rmcp-example
 
 *.env
+
+.DS_Store
