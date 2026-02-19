@@ -29,15 +29,32 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && mv /root/.local/bin/uv /usr/local/bin/uv \
     && chmod 0755 /usr/local/bin/uv
 
+# 安装中文字体、fontconfig，并更新字体缓存
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-noto-cjk \
+    fonts-wqy-zenhei \
+    fontconfig \
+    && fc-cache -fv \
+    && rm -rf /var/lib/apt/lists/*
+
+# 预配置 matplotlib 默认使用中文字体
+RUN mkdir -p /etc/matplotlib && \
+    echo "font.sans-serif: Noto Sans CJK SC, WenQuanYi Zen Hei, DejaVu Sans" > /etc/matplotlib/matplotlibrc && \
+    echo "axes.unicode_minus: False" >> /etc/matplotlib/matplotlibrc
+ENV MATPLOTLIBRC=/etc/matplotlib/matplotlibrc
+
 # Create non-root runtime user
 RUN groupadd -g 10001 worker && \
     useradd -u 10001 -g worker -m -d /home/worker -s /bin/sh worker
+
+RUN mkdir -p /shared && chmod 777 /shared
 
 WORKDIR /home/worker
 
 ENV WORKER_HOST=0.0.0.0
 ENV WORKER_PORT=9000
 ENV EXECUTION_TIMEOUT=60
+ENV MPLCONFIGDIR=/tmp/matplotlib
 
 COPY --from=builder /app/codebox-worker /usr/local/bin/codebox-worker
 

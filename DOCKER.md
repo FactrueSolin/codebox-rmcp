@@ -112,6 +112,7 @@ docker run -d \
 | `SERVER_HOST` | HTTP 监听地址 | `0.0.0.0` | `0.0.0.0` |
 | `SERVER_PORT` | HTTP 监听端口 | `8080` | `18081` |
 | `EXECUTION_TIMEOUT` | Python 代码执行超时（秒） | `60` | `60` |
+| `PUBLIC_URL` | 公共文件访问的基础 URL，用于静态文件服务（`/public/*`） | `http://localhost:18081` | `https://your-domain.com` |
 
 > 提示：Compose 默认映射端口为 `18081:18081`（见 [`docker-compose.yml`](docker-compose.yml:7)），因此通常需要在 `.env` 中设置 `SERVER_PORT=18081`（示例见 [`.env`](.env:3)）。
 
@@ -176,7 +177,41 @@ curl -i \
 
 ---
 
-## 7. 生产部署建议
+## 7. 共享存储
+
+MCP 容器（`codebox-mcp`）与 Worker 容器（`codebox-worker`）通过 Docker 命名卷 **`shared-data`** 共享 `/shared` 目录，用于两个容器之间的文件交换（配置见 [`docker-compose.yml`](docker-compose.yml:14) 与 [`docker-compose.yml`](docker-compose.yml:40)）。
+
+### 7.1 挂载路径
+
+| 容器 | 挂载点 |
+|------|--------|
+| `codebox-mcp` | `/shared` |
+| `codebox-worker` | `/shared` |
+
+### 7.2 权限说明
+
+Worker 容器以 UID 10001 运行（见 [`docker-compose.yml`](docker-compose.yml:43)），共享目录已设置对应权限，确保 Worker 可以正常读写 `/shared` 路径。
+
+### 7.3 持久化说明
+
+- **数据保留**：使用 Docker 命名卷，数据在容器重启后保留
+- **数据清除**：执行 `docker-compose down -v` 会删除命名卷，从而清除共享数据
+- **仅删除容器**：执行 `docker-compose down`（不带 `-v`）会保留共享数据
+
+### 7.4 静态文件服务
+
+MCP 服务器提供静态文件服务，将 `/shared` 目录通过 HTTP 路径 `/public/*` 公开暴露：
+
+- **访问方式**：`{PUBLIC_URL}/public/<文件名>`
+- **示例**：文件保存在 `/shared/test.png`，可通过 `http://localhost:18081/public/test.png` 访问
+- **认证**：该路由为公开访问，不需要 Bearer Token 认证
+- **用途**：MCP 工具执行 Python 代码后，可将生成的文件（如图片、报告等）写入 `/shared` 目录，然后通过 HTTP 直接访问
+
+> 注意：`PUBLIC_URL` 的默认值为 `http://localhost:18081`，如果通过反向代理或域名访问，需要设置对应的 `PUBLIC_URL` 环境变量。
+
+---
+
+## 8. 生产部署建议
 
 ### 7.1 安全
 
@@ -214,7 +249,7 @@ services:
 
 ---
 
-## 8. 故障排查
+## 9. 故障排查
 
 ### 8.1 容器无法启动
 
@@ -262,7 +297,7 @@ Compose 健康检查会访问：`http://127.0.0.1:${SERVER_PORT:-18081}/health`�
 
 ---
 
-## 9. 镜像信息（多阶段构建说明）
+## 10. 镜像信息（多阶段构建说明）
 
 镜像构建分为两阶段（见 [`Dockerfile`](Dockerfile:1)）：
 

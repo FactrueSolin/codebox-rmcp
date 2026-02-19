@@ -10,6 +10,7 @@ use rmcp::transport::{
     streamable_http_server::{session::local::LocalSessionManager, tower::StreamableHttpService},
 };
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::ServeDir;
 
 use crate::{
     auth::{TokenStore, auth_middleware},
@@ -47,6 +48,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error + Send + Sync>
 
     let app = Router::new()
         .route("/health", get(health))
+        .nest_service("/public", ServeDir::new("/shared"))
         .merge(protected_mcp_router)
         .layer(
             CorsLayer::new()

@@ -25,6 +25,8 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /shared
+
 # Default service settings (can be overridden by env_file/runtime env)
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=8080
