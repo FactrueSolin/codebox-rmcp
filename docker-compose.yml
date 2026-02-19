@@ -11,8 +11,8 @@ services:
       - WORKER_URL=http://codebox-worker:9000
     networks:
       - sandbox
-    volumes:
-      - shared-data:/shared
+    tmpfs:
+      - /shared:exec,size=512m,mode=1777
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:${SERVER_PORT:-18081}/health"]
@@ -37,14 +37,13 @@ services:
       - EXECUTION_TIMEOUT=${EXECUTION_TIMEOUT:-60}
     networks:
       - sandbox
-    volumes:
-      - shared-data:/shared
+    tmpfs:
+      - /shared:exec,size=512m,mode=1777
+      - /tmp:size=512M,mode=1777
+      - /home/worker/.cache:size=1G,mode=0755,uid=10001,gid=10001,exec
     restart: unless-stopped
     user: "10001:10001"
     read_only: true
-    tmpfs:
-      - /tmp:size=512M,mode=1777
-      - /home/worker/.cache:size=1G,mode=0755,uid=10001,gid=10001,exec
     cap_drop:
       - ALL
     security_opt:
@@ -68,6 +67,3 @@ services:
 networks:
   sandbox:
     driver: bridge
-
-volumes:
-  shared-data:
